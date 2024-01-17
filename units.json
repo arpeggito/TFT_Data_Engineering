@@ -1,0 +1,70 @@
+[
+    {
+        "character_id": "TFT10_Twitch",
+        "itemNames": [],
+        "name": "",
+        "rarity": 1,
+        "tier": 1
+    },
+    {
+        "character_id": "TFT10_Kayle",
+        "itemNames": [],
+        "name": "",
+        "rarity": 1,
+        "tier": 1
+    },
+    {
+        "character_id": "TFT10_Vex",
+        "itemNames": [],
+        "name": "",
+        "rarity": 2,
+        "tier": 1
+    },
+    {
+        "character_id": "TFT10_Mordekaiser",
+        "itemNames": [
+            "TFT_Item_GargoyleStoneplate",
+            "TFT_Item_WarmogsArmor",
+            "TFT_Item_Crownguard"
+        ],
+        "name": "",
+        "rarity": 2,
+        "tier": 2
+    },
+    {
+        "character_id": "TFT10_Viego",
+        "itemNames": [
+            "TFT_Item_GuinsoosRageblade"
+        ],
+        "name": "",
+        "rarity": 4,
+        "tier": 2
+    },
+    {
+        "character_id": "TFT10_Karthus",
+        "itemNames": [
+            "TFT_Item_JeweledGauntlet",
+            "TFT4_Item_OrnnObsidianCleaver",
+            "TFT_Item_SpearOfShojin"
+        ],
+        "name": "",
+        "rarity": 4,
+        "tier": 2
+    },
+    {
+        "character_id": "TFT10_Akali",
+        "itemNames": [
+            "TFT10_Item_PentakillEmblem"
+        ],
+        "name": "",
+        "rarity": 4,
+        "tier": 2
+    },
+    {
+        "character_id": "TFT10_Yorick",
+        "itemNames": [],
+        "name": "",
+        "rarity": 6,
+        "tier": 1
+    }
+]
