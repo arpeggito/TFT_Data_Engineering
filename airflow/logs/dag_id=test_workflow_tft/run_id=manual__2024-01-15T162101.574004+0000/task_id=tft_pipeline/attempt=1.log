@@ -1,0 +1,43 @@
+[2024-01-15T16:21:01.973+0000] {taskinstance.py:1957} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: test_workflow_tft.tft_pipeline manual__2024-01-15T16:21:01.574004+00:00 [queued]>
+[2024-01-15T16:21:01.980+0000] {taskinstance.py:1957} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: test_workflow_tft.tft_pipeline manual__2024-01-15T16:21:01.574004+00:00 [queued]>
+[2024-01-15T16:21:01.980+0000] {taskinstance.py:2171} INFO - Starting attempt 1 of 1
+[2024-01-15T16:21:01.990+0000] {taskinstance.py:2192} INFO - Executing <Task(PythonOperator): tft_pipeline> on 2024-01-15 16:21:01.574004+00:00
+[2024-01-15T16:21:01.994+0000] {standard_task_runner.py:60} INFO - Started process 1733 to run task
+[2024-01-15T16:21:01.996+0000] {standard_task_runner.py:87} INFO - Running: ['***', 'tasks', 'run', 'test_workflow_tft', 'tft_pipeline', 'manual__2024-01-15T16:21:01.574004+00:00', '--job-id', '47', '--raw', '--subdir', 'DAGS_FOLDER/test_workflow_tft.py', '--cfg-path', '/tmp/tmphckol5ky']
+[2024-01-15T16:21:01.998+0000] {standard_task_runner.py:88} INFO - Job 47: Subtask tft_pipeline
+[2024-01-15T16:21:02.047+0000] {task_command.py:423} INFO - Running <TaskInstance: test_workflow_tft.tft_pipeline manual__2024-01-15T16:21:01.574004+00:00 [running]> on host 78bb24a4dd2e
+[2024-01-15T16:21:02.216+0000] {taskinstance.py:2481} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='Andres Medina' AIRFLOW_CTX_DAG_ID='test_workflow_tft' AIRFLOW_CTX_TASK_ID='tft_pipeline' AIRFLOW_CTX_EXECUTION_DATE='2024-01-15T16:21:01.574004+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2024-01-15T16:21:01.574004+00:00'
+[2024-01-15T16:21:02.414+0000] {Limits.py:87} INFO - rate limit changed from 0/0s to 20/1s
+[2024-01-15T16:21:02.414+0000] {Limits.py:87} INFO - rate limit changed from 0/0s to 100/120s
+[2024-01-15T16:21:02.414+0000] {Limits.py:87} INFO - rate limit changed from 0/0s to 2000/60s
+[2024-01-15T16:21:02.592+0000] {Limits.py:87} INFO - rate limit changed from 0/0s to 20/1s
+[2024-01-15T16:21:02.593+0000] {Limits.py:87} INFO - rate limit changed from 0/0s to 100/120s
+[2024-01-15T16:21:02.593+0000] {Limits.py:87} INFO - rate limit changed from 0/0s to 400/10s
+[2024-01-15T16:21:02.660+0000] {Limits.py:87} INFO - rate limit changed from 0/0s to 200/10s
+[2024-01-15T16:21:04.453+0000] {logging_mixin.py:188} INFO -                                              augments  ...  level
+0   [RichGetRicher, _RememberYourRoots, Stationary...  ...      8
+1   [PandorasItems2, UnleashedArcana, PortableForg...  ...      9
+2     [_DoubleTheFunk, ImpenetrableBulwark, Keepers1]  ...      8
+3   [_Vampirism, _SpellweaverHalftimeShow, Command...  ...      8
+4          [PhreakyFriday, RadiantRelics, OneTwoFive]  ...      9
+5               [EscortQuest, Keepers1, YouHaveMyBow]  ...      9
+6          [JeweledLotus, _Bedazzled, _LittleBuddies]  ...      9
+7   [_VampirismPlus, RadiantRelics, PortableForgeP...  ...     10
+8          [IronAssets, YouHaveMySword, YouHaveMyBow]  ...      9
+9   [ClutteredMind, Commander_RollingForDays, _Exe...  ...      8
+10   [ItemGrabBag1, PortableForgePlus, ForceOfNature]  ...      8
+11       [SalvageBin, TwoHealthy, StationarySupport2]  ...      9
+12  [CyberneticBulk1, Commander_RollingForDays, St...  ...      8
+13             [ClearMind, LastStand, _DoubleTheFunk]  ...      8
+14  [_TwinTerror2, ImpenetrableBulwark, Cybernetic...  ...      7
+15         [BardPlaybook2, ArmyBuilding, TonsOfStats]  ...      8
+16  [YouHaveMySword, YoungAndWildAndFree, JeweledL...  ...      6
+17  [RichGetRicher, GreaterJeweledLotus, _CrashTes...  ...      8
+18    [StationarySupport2, Martyr, _CrashTestDummies]  ...      9
+19  [Idealism, Commander_RollingForDays, PortableF...  ...      8
+
+[20 rows x 4 columns]
+[2024-01-15T16:21:04.487+0000] {python.py:201} INFO - Done. Returned value was: None
+[2024-01-15T16:21:04.496+0000] {taskinstance.py:1138} INFO - Marking task as SUCCESS. dag_id=test_workflow_tft, task_id=tft_pipeline, execution_date=20240115T162101, start_date=20240115T162101, end_date=20240115T162104
+[2024-01-15T16:21:04.534+0000] {local_task_job_runner.py:234} INFO - Task exited with return code 0
+[2024-01-15T16:21:04.548+0000] {taskinstance.py:3281} INFO - 0 downstream tasks scheduled from follow-on schedule check
