@@ -7,9 +7,11 @@ from riotwatcher import TftWatcher
 from sqlalchemy import create_engine
 import time
 import logging
+import os
 
-API_KEY = 'RGAPI-4aca0822-6d0c-4f94-a5fb-9416a23151dd'
-headers = {"X-Riot-Token": "RGAPI-4aca0822-6d0c-4f94-a5fb-9416a23151dd"}
+# RIOT_API_KEY = 'RGAPI-4aca0822-6d0c-4f94-a5fb-9416a23151dd' 
+RIOT_API_KEY = os.environ['RIOT_API_KEY']
+headers = {"X-Riot-Token": RIOT_API_KEY}
 
 summonerId = []
 summonerName = []
@@ -63,8 +65,8 @@ def tf_to_df():
     # print(df)
 
     # Connects to the Postgres DB to add the DF to the existent DB called tft
-    engine = create_engine('postgresql://postgres:pass123@192.168.0.134:5432/tft_challenger')
-    df.to_sql('tft_challenger', engine, if_exists='replace', index=False)
+    engine = create_engine('postgresql://postgres:pass123@192.168.0.134:5432/tft_challenger_leaderboard')
+    df.to_sql('tft_challenger_leaderboard', engine, if_exists='replace', index=False)
 
 # @task
 def tft_chall_matches():
