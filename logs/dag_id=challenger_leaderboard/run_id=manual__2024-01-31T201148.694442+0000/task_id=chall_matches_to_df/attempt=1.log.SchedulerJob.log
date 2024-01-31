@@ -1,0 +1,1 @@
+[2024-01-31T20:11:50.526+0000] {scheduler_job_runner.py:781} ERROR - Executor reports task instance <TaskInstance: challenger_leaderboard.chall_matches_to_df manual__2024-01-31T20:11:48.694442+00:00 [queued]> finished (failed) although the task says it's queued. (Info: None) Was the task killed externally?

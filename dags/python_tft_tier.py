@@ -27,7 +27,7 @@ chall_leaderboard = {'Summoner Name': summonerName, 'League Points': leaguePoint
 
 chall_matches = {'Summoner Name': match_summ_name,'Augments': match_augments, 'Units': match_units, 'Level': match_level, 'Placement': match_placement}
 
-@dag(schedule="@daily", start_date=datetime(2024, 1, 22))
+@dag(schedule="@daily", start_date=datetime(2024, 1, 31))
 def challenger_leaderboard():
     def rm_underscore(df):
         # Apply a lambda function to remove underscores from each element in the DataFrame
@@ -35,7 +35,7 @@ def challenger_leaderboard():
 
         return df_no_underscores
 
-    @task
+    # @task
     def tft_challenger_rank():
         url = 'https://euw1.api.riotgames.com/tft/league/v1/challenger?queue=RANKED_TFT'
         response = requests.get(url, headers=headers)
@@ -55,7 +55,7 @@ def challenger_leaderboard():
             wins.append(data_summonerWin)
             losses.append(data_summonerLoss)
 
-    @task
+    # @task
     def tf_to_df():
         df = pd.DataFrame(chall_leaderboard)
         df.insert(4, "Rank", 'Challenger', True)
@@ -65,7 +65,7 @@ def challenger_leaderboard():
         engine = create_engine('postgresql://postgres:pass123@192.168.0.134:5432/tft_challenger_leaderboard')
         df.to_sql('tft_challenger_leaderboard', engine, if_exists='replace', index=False)
 
-    @task
+    # @task
     def tft_chall_matches():
         for name in summonerName:
             try:
@@ -113,7 +113,7 @@ def challenger_leaderboard():
                 print(e)
 
     # Converts the Dictionary with the data from the previous for loops into a DF
-    @task
+    # @task
     def chall_matches_to_df():
         df_chall_matches = pd.DataFrame(chall_matches)
         df_without_underscore = rm_underscore(df_chall_matches)
@@ -125,9 +125,10 @@ def challenger_leaderboard():
         # logging.info('Start data Pipeline')
         # tft_challenger_rank() >> tf_to_df() >> tft_chall_matches() >> chall_matches_to_df()
 
-    tft_challenger_rank()
-    tf_to_df() 
-    tft_chall_matches()
-    chall_matches_to_df()
+    # tft_challenger_rank()
+    # tf_to_df() 
+    # tft_chall_matches()
+    # chall_matches_to_df()
 
-challenger_leaderboard()
+
+tft_dag = challenger_leaderboard()
