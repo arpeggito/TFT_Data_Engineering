@@ -1,5 +1,3 @@
-![image](https://github.com/arpeggito/tft_project/assets/145495639/4666cfe2-6f20-40f8-9b5b-e6508310c266)﻿# TFT Data Engineering Project
-
 ## Overview
 
 This section provides a high-level overview of the project, including its objectives, target audience, and key features.
@@ -29,7 +27,5 @@ To use the template, please install the following.
 1. **Setup Docker Environment:**
     ## to set up the environment with docker use:
    docker-compose up -d 
-
-![tft_project](https://github.com/arpeggito/tft_project/assets/145495639/f5d9061b-1234-442c-8da7-0cd4f778c2c9)
 
 ![image](https://github.com/arpeggito/tft_project/assets/145495639/4c852e60-21e7-49f5-8abd-ac67ad7275ea)
