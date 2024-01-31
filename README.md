@@ -1,4 +1,4 @@
-##TFT Leaderboard and Player Analysis with Docker, PostgreSQL, Airflow, and Python
+## TFT Leaderboard and Player Analysis with Docker, PostgreSQL, Airflow, and Python
 
 ## Overview
 
