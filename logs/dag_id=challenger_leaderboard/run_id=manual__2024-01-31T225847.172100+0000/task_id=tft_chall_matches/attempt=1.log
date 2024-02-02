@@ -1,0 +1,13 @@
+[2024-01-31T22:58:52.560+0000] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: challenger_leaderboard.tft_chall_matches manual__2024-01-31T22:58:47.172100+00:00 [queued]>
+[2024-01-31T22:58:52.566+0000] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: challenger_leaderboard.tft_chall_matches manual__2024-01-31T22:58:47.172100+00:00 [queued]>
+[2024-01-31T22:58:52.566+0000] {taskinstance.py:2170} INFO - Starting attempt 1 of 1
+[2024-01-31T22:58:52.579+0000] {taskinstance.py:2191} INFO - Executing <Task(_PythonDecoratedOperator): tft_chall_matches> on 2024-01-31 22:58:47.172100+00:00
+[2024-01-31T22:58:52.585+0000] {standard_task_runner.py:60} INFO - Started process 119 to run task
+[2024-01-31T22:58:52.586+0000] {standard_task_runner.py:87} INFO - Running: ['***', 'tasks', 'run', 'challenger_leaderboard', 'tft_chall_matches', 'manual__2024-01-31T22:58:47.172100+00:00', '--job-id', '217', '--raw', '--subdir', 'DAGS_FOLDER/python_tft_tier.py', '--cfg-path', '/tmp/tmpsro2g3a5']
+[2024-01-31T22:58:52.587+0000] {standard_task_runner.py:88} INFO - Job 217: Subtask tft_chall_matches
+[2024-01-31T22:58:52.651+0000] {task_command.py:423} INFO - Running <TaskInstance: challenger_leaderboard.tft_chall_matches manual__2024-01-31T22:58:47.172100+00:00 [running]> on host 964619f82b50
+[2024-01-31T22:58:52.754+0000] {taskinstance.py:2480} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='***' AIRFLOW_CTX_DAG_ID='challenger_leaderboard' AIRFLOW_CTX_TASK_ID='tft_chall_matches' AIRFLOW_CTX_EXECUTION_DATE='2024-01-31T22:58:47.172100+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2024-01-31T22:58:47.172100+00:00'
+[2024-01-31T22:58:52.755+0000] {python.py:201} INFO - Done. Returned value was: None
+[2024-01-31T22:58:52.773+0000] {taskinstance.py:1138} INFO - Marking task as SUCCESS. dag_id=challenger_leaderboard, task_id=tft_chall_matches, execution_date=20240131T225847, start_date=20240131T225852, end_date=20240131T225852
+[2024-01-31T22:58:52.798+0000] {local_task_job_runner.py:234} INFO - Task exited with return code 0
+[2024-01-31T22:58:52.824+0000] {taskinstance.py:3280} INFO - 1 downstream tasks scheduled from follow-on schedule check
