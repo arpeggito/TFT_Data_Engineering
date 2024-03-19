@@ -3,15 +3,29 @@
 import requests
 import pandas as pd
 import json
-from riotwatcher import TftWatcher
 from sqlalchemy import create_engine
 import time
 import logging
 import os
+from dotenv import load_dotenv
+from ratelimit import RateLimitException, limits, sleep_and_retry
+import snowflake.connector
+from snowflake.connector.pandas_tools import write_pandas
 
-# RIOT_API_KEY = 'RGAPI-4aca0822-6d0c-4f94-a5fb-9416a23151dd'
-RIOT_API_KEY = "RGAPI-4aca0822-6d0c-4f94-a5fb-9416a23151dd"
+load_dotenv()
+
+RIOT_API_KEY = os.getenv("RIOT_API_KEY")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_1_NAME = os.getenv("DB_1_NAME")
+DB_2_NAME = os.getenv("DB_2_NAME")
+
 headers = {"X-Riot-Token": RIOT_API_KEY}
+
+BASE_URL = "https://euw1.api.riotgames.com/tft"
+BASE_URL_2 = "https://europe.api.riotgames.com/tft"
 
 summonerId = []
 summonerName = []
@@ -25,6 +39,8 @@ match_augments = []
 match_placement = []
 match_units = []
 match_level = []
+match_id = []
+
 
 chall_leaderboard = {
     "Summoner Name": summonerName,
@@ -39,7 +55,12 @@ chall_matches = {
     "Units": match_units,
     "Level": match_level,
     "Placement": match_placement,
+    "Match ID": match_id,
 }
+
+# Define the rate limits
+rate_limit = 20  # Number of requests per time period
+time_period = 1  # Time period in seconds
 
 
 # @dag(schedule="@daily", start_date=datetime(2024, 1, 22))
@@ -53,7 +74,7 @@ def rm_underscore(df):
 
 # @task
 def tft_challenger_rank():
-    url = "https://euw1.api.riotgames.com/tft/league/v1/challenger?queue=RANKED_TFT"
+    url = f"{BASE_URL}/league/v1/challenger?queue=RANKED_TFT"
     response = requests.get(url, headers=headers)
     response_json = json.loads(response.text)
     entries = response_json["entries"]
@@ -71,48 +92,66 @@ def tft_challenger_rank():
         wins.append(data_summonerWin)
         losses.append(data_summonerLoss)
 
-
-# @task
-def tf_to_df():
     df = pd.DataFrame(chall_leaderboard)
     df.insert(4, "Rank", "Challenger", True)
-    # print(df)
 
-    # Connects to the Postgres DB to add the DF to the existent DB called tft
+    # # Connects to the Postgres DB to add the DF to the existent DB called tft
     engine = create_engine(
-        "postgresql://postgres:pass123@192.168.0.134:5432/tft_challenger_leaderboard"
+        f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_1_NAME}"
     )
-    df.to_sql("tft_challenger_leaderboard", engine, if_exists="replace", index=False)
-
-
+    with engine.connect() as connection:
+        df.to_sql(
+            "tft_challenger_leaderboard", engine, if_exists="replace", index=False
+        )
+    
+    conn = snowflake.connector.connect(
+        user= os.getenv("SNOWFLAKE_USER"),
+        password= os.getenv("SNOWFLAKE_PASSWORD"),
+        account= os.getenv("SNOWFLAKE_ACCOUNT_ID"),
+        warehouse= os.getenv("SNOWFLAKE_WAREHOUSE"),
+        database= os.getenv("SNOWFLAKE_DATABASE"),
+    )
+    # ToDO: extract to config
+    schema_name = "TFT_DATABASE"
+    table_name = "tft_challenger_leaderboard"
+    cur = conn.cursor()
+    cur.execute("USE SCHEMA TFT")
+    
+    status, num_chunks, num_rows, output = write_pandas(
+    conn,
+    df,
+    schema=schema_name,
+    table_name=table_name,
+    database=os.getenv("SNOWFLAKE_DATABASE"),
+    auto_create_table=True,
+    overwrite=True
+    )
+    
 # @task
+@sleep_and_retry
+@limits(calls=rate_limit, period=time_period)
 def tft_chall_matches():
     for name in summonerName:
         try:
             # Gets the puuid of each challenger player
-            url_puuid = f"https://euw1.api.riotgames.com/tft/summoner/v1/summoners/by-name/{name}"
+            url_puuid = f"{BASE_URL}/summoner/v1/summoners/by-name/{name}"
             response = requests.get(url_puuid, headers=headers)
             response_json = json.loads(response.text)
             puuid = response_json["puuid"]
-            time.sleep(1.2)
 
             # Gets the Matches by puuid of each player
-            url_matches = f"https://europe.api.riotgames.com/tft/match/v1/matches/by-puuid/{puuid}/ids?start=0&count=10"
+            url_matches = (
+                f"{BASE_URL_2}/match/v1/matches/by-puuid/{puuid}/ids?start=0&count=10"
+            )
             response2 = requests.get(url_matches, headers=headers)
             matches = json.loads(response2.text)
-            time.sleep(1.2)
 
             # Iterates over the matches and brings the important data from the match of the player
             for match in matches:
-                url_matchid = (
-                    f"https://europe.api.riotgames.com/tft/match/v1/matches/{match}"
-                )
+                url_matchid = f"{BASE_URL_2}/match/v1/matches/{match}"
                 response3 = requests.get(url_matchid, headers=headers)
                 game = json.loads(response3.text)
-                time.sleep(1.2)
-                data = game["info"]["participants"][
-                    game["metadata"]["participants"].index(puuid)
-                ]
+                data = game["info"]["participants"][game["metadata"]["participants"].index(puuid)]
                 if data == -1:
                     break
 
@@ -130,32 +169,61 @@ def tft_chall_matches():
                 match_placement.append(placements)
                 match_units.append(units_new)
                 match_level.append(level)
+                match_id.append(match)
 
         except KeyError:
             print(response.status_code)
         except Exception as e:
             print(e)
 
-
-# Converts the Dictionary with the data from the previous for loops into a DF
-# @task
-def chall_matches_to_df():
+    # Converts the Dictionary with the data from the previous for loops into a DF
     df_chall_matches = pd.DataFrame(chall_matches)
     df_without_underscore = rm_underscore(df_chall_matches)
-
-    # Sends the dataframe to the postgres database.
+    
+    # # Sends the dataframe to the postgres database.
     engine = create_engine(
-        "postgresql://postgres:pass123@192.168.0.134:5432/chall_tft_stats"
+        f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_2_NAME}"
     )
-    df_without_underscore.to_sql(
-        "chall_tft_stats", engine, if_exists="replace", index=False
+    with engine.connect() as connection:
+        df_without_underscore.to_sql(
+            "chall_tft_stats", engine, if_exists="replace", index=False
+        )
+        
+    # Sends DataFrames to Snowflake
+    conn = snowflake.connector.connect(
+        user = os.getenv("SNOWFLAKE_USER"),
+        password= os.getenv("SNOWFLAKE_PASSWORD"),
+        account= os.getenv("SNOWFLAKE_ACCOUNT_ID"),
+        warehouse= os.getenv("SNOWFLAKE_WAREHOUSE"),
+        database= os.getenv("SNOWFLAKE_DATABASE"),
+        role= os.getenv("SNOWFLAKE_ROLE")
     )
+    
+    # ToDO: extract to config
 
-    # logging.info('Start data Pipeline')
-    # tft_challenger_rank() >> tf_to_df() >> tft_chall_matches() >> chall_matches_to_df()
+    schema_name = "TFT_DATABASE"
+    table_name = "chall_tft_stats"
+    cur = conn.cursor()
+    cur.execute("USE SCHEMA TFT_DATABASE")
+    
+    status, num_chunks, num_rows, output = write_pandas(
+    conn,
+    df_without_underscore,
+    schema=schema_name,
+    table_name=table_name,
+    database=os.getenv("SNOWFLAKE_DATABASE"),
+    auto_create_table=True,
+    overwrite=True
+    )
+    
+def main():
+    try:
+        tft_challenger_rank()
+        tft_chall_matches()
+    except RateLimitException:
+        logging.error("Rate limit exceeded. Please wait before making more requests.")
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
 
-
-tft_challenger_rank()
-tf_to_df()
-tft_chall_matches()
-chall_matches_to_df()
+if __name__ == "__main__":
+    main()
