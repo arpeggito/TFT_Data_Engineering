@@ -1,7 +1,6 @@
 .env
-/config
-/logs
-/plugins
-python_tft_tier
-/metabase
-/pgdata
+config/
+logs/
+plugins/
+metabase/
+pgdata/
