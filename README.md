@@ -4,6 +4,8 @@
 
 This section provides a high-level overview of the project, including its objectives, target audience, and key features.
 
+![image](https://github.com/arpeggito/tft_project/assets/145495639/4c852e60-21e7-49f5-8abd-ac67ad7275ea)
+
 ## Project Goals
 
 - Create a real-time leaderboard of the top TFT players on the EUW server
@@ -63,4 +65,3 @@ Brose Data:
 ![image](https://github.com/arpeggito/TFT_Data_Engineering/assets/145495639/c66c46d8-4bf0-4871-b802-5d0f5d512a7f)
 
 
-![image](https://github.com/arpeggito/tft_project/assets/145495639/4c852e60-21e7-49f5-8abd-ac67ad7275ea)
