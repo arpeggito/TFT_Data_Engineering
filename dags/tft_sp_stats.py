@@ -11,6 +11,13 @@ import os
 
 load_dotenv()
 
+RIOT_API_KEY = os.getenv("RIOT_API_KEY")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_3_NAME = os.getenv("DB_3_NAME")
+
 def rm_underscore(df):
     # Apply a lambda function to remove underscores from each element in the DataFrame
     df_no_underscores = df.applymap(lambda x: str(x).replace('_', ''))
@@ -22,7 +29,7 @@ def rm_underscore(df):
 # @task
 def tft_pipeline():
     # Definition of the API Authentication with Token
-    api_key = os.getenv("RIOT_API_KEY")
+    api_key = RIOT_API_KEY
     watcher = TftWatcher(api_key)
     my_region = 'euw1'
     summoner_name = 'Arpeggito'
@@ -76,7 +83,12 @@ def tft_pipeline():
     # print(df_without_underscore)
 
     # Connects to the Postgres DB to add the DF to the existent DB called tft
-    engine = create_engine('postgresql://postgres:pass123@192.168.0.134:5432/arpeggito_stats')
-    df_without_underscore.to_sql('arpeggito_stats', engine, if_exists='replace', index=False)
+    engine = create_engine(
+        f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_3_NAME}"
+    )
+    with engine.connect() as connection:
+        df_without_underscore.to_sql(
+            "arpeggito_stats", engine, if_exists="replace", index=False
+        )
 
 tft_dag = tft_pipeline()
