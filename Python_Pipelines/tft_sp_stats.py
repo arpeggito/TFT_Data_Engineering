@@ -5,7 +5,10 @@ import numpy as np
 import json
 from sqlalchemy import create_engine
 from datetime import datetime
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 def rm_underscore(df):
     # Apply a lambda function to remove underscores from each element in the DataFrame
@@ -16,7 +19,7 @@ def rm_underscore(df):
 
 def tft_pipeline():
     # Definition of the API Authentication with Token
-    api_key = "RGAPI-4aca0822-6d0c-4f94-a5fb-9416a23151dd"
+    api_key = os.getenv("RIOT_API_KEY")
     watcher = TftWatcher(api_key)
     my_region = "euw1"
     summoner_name = "Arpeggito"
