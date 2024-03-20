@@ -28,9 +28,9 @@ headers = {"X-Riot-Token": RIOT_API_KEY}
 BASE_URL = "https://euw1.api.riotgames.com/tft"
 BASE_URL_2 = "https://europe.api.riotgames.com/tft"
 
-summonerId = []
-summonerName = []
-leaguePoints = []
+summoner_id = []
+summoner_name = []
+league_points = []
 wins = []
 losses = []
 player_puuid = []
@@ -44,8 +44,8 @@ match_id = []
 
 
 chall_leaderboard = {
-    "Summoner Name": summonerName,
-    "League Points": leaguePoints,
+    "Summoner Name": summoner_id,
+    "League Points": league_points,
     "Number of Wins": wins,
     "Number of Losses": losses,
 }
