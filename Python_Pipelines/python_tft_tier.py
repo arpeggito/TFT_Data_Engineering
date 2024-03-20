@@ -86,9 +86,9 @@ def tft_challenger_rank():
         data_summonerWin = entry["wins"]
         data_summonerLoss = entry["losses"]
 
-        summonerId.append(data_summonerId)
-        summonerName.append(data_summonerName)
-        leaguePoints.append(data_summonerLP)
+        summoner_id.append(data_summonerId)
+        summoner_name.append(data_summonerName)
+        league_points.append(data_summonerLP)
         wins.append(data_summonerWin)
         losses.append(data_summonerLoss)
 
@@ -131,7 +131,7 @@ def tft_challenger_rank():
 @sleep_and_retry
 @limits(calls=rate_limit, period=time_period)
 def tft_chall_matches():
-    for name in summonerName:
+    for name in summoner_name:
         try:
             # Gets the puuid of each challenger player
             url_puuid = f"{BASE_URL}/summoner/v1/summoners/by-name/{name}"
