@@ -35,9 +35,6 @@ def tft_pipeline():
     # Retrieve information such as puuid, etc from a particular user from a particular region
     me = watcher.summoner.by_name(my_region, summoner_name)
 
-    # for key in me:
-    #     print(key, ':', me[key])
-
     # Obtain the last 20 matches ID's from your puuid and region.
     matches_ids = watcher.match.by_puuid(my_region, me["puuid"], count=20)
     # terate over those matches ID to get detail of each match
@@ -74,10 +71,6 @@ def tft_pipeline():
         "units": match_units,
         "level": match_level,
     }
-    # print(data) // Debug line
-
-    # Converts the DataFrame Dict into a DataFrame
-    # df_test = pd.json_normalize(DataFrame) /// test
 
     df = pd.DataFrame(DataFrame)
     # df['placement'] = df['placement'].astype(int)
@@ -95,4 +88,3 @@ def tft_pipeline():
         df_without_underscore.to_sql(
             "arpeggito_stats", engine, if_exists="replace", index=False
         )
-
