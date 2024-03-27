@@ -99,7 +99,7 @@ def tft_api_transform_challenger():
 @limits(calls=rate_limit, period=time_period)
 def get_player_puuid(summoner_name) -> list[dict]:
     
-    puuids = []
+    player_data = []
     
     for name in summoner_name:
         try:
@@ -114,7 +114,7 @@ def get_player_puuid(summoner_name) -> list[dict]:
             data = {}
             data['name'] = name
             data['puuid'] = player_puuid
-            puuids.append(data)
+            player_data.append(data)
             
         except requests.HTTPError as http_err:
             print(f"HTTP error occurred: {http_err}")
@@ -123,15 +123,15 @@ def get_player_puuid(summoner_name) -> list[dict]:
             print(f"Other error occurred: {err}")
             raise
         
-    return puuids
+    return player_data
         
 @sleep_and_retry
 @limits(calls=rate_limit, period=time_period)
-def get_player_matches(puuids) -> list[dict]:
+def get_player_matches(player_data) -> list[dict]:
     
-    matches_ids = []
+    player_data_matches_id = []
     
-    for user_data in puuids:
+    for user_data in player_data:
         try:
             # Gets the Matches by puuid of each player
             puuid = user_data["puuid"]
@@ -144,7 +144,7 @@ def get_player_matches(puuids) -> list[dict]:
             
             user_data["matches"] = matches
             
-            matches_ids.append(user_data)
+            player_data_matches_id.append(user_data)
         
         except requests.HTTPError as http_err:
             print(f"HTTP error occurred: {http_err}")
@@ -153,14 +153,17 @@ def get_player_matches(puuids) -> list[dict]:
             print(f"Other error occurred: {err}")
             raise
 
-    return matches_ids
+    return player_data_matches_id
 
 @sleep_and_retry
 @limits(calls=rate_limit, period=time_period)
-def iterate_over_matches(matches_ids):
+def iterate_over_matches(player_data_matches_id) -> list[dict]:
+    
+    player_data_matches_detail = []
+    
     try:
         # Iterates over the matches and brings the important data from the match of the player
-        for user_data in matches_ids:
+        for user_data in player_data_matches_id:
             
             matches = user_data["matches"]
             puuid = user_data["puuid"]
@@ -169,13 +172,22 @@ def iterate_over_matches(matches_ids):
                 url = f"{BASE_URL_2}/match/v1/matches/{match}"
                 response = requests.get(url, headers=headers)
                 response.raise_for_status()  # Raise an exception for HTTP errors
-
                 game = response.json()
                 
                 data = game["info"]["participants"][game["metadata"]["participants"].index(puuid)]
+                
+                user_data["Augments"] = data["augments"]
+                user_data["Placement"] = data["placement"]
+                user_data["Units"] = data["units"]
+                user_data["Level"] = data["level"]
+                user_data["Match"] = match
+                
+                player_data_matches_detail.append(user_data)
+
                 if data == -1:
-                    break
-            return data
+                    continue
+                
+        return player_data_matches_detail
     
     except requests.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
@@ -184,7 +196,7 @@ def iterate_over_matches(matches_ids):
         print(f"Other error occurred: {err}")
         raise
     
-def matches_data_manipulation(data):
+def matches_data_manipulation(player_data_matches_detail):
     
     match_summ_name = []
     match_augments = []
@@ -193,17 +205,20 @@ def matches_data_manipulation(data):
     match_level = []
     match_id = []
     
-    for match in data:
+    for data in player_data_matches_detail:
+        print(data)
         # Manipulats the data and cleans it
-        augments = data["augments"]
+        summoner_name = data["name"]
+        match = data["Match"]
+        augments = data["Augments"]
         augments_new = [e[13:] for e in augments]
-        placements = data["placement"]
-        units = [unit["character_id"] for unit in data["units"]]
+        placements = data["Placement"]
+        units = [unit["character_id"] for unit in data["Units"]]
         units_new = [e[6:] for e in units]
-        level = data["level"]
+        level = data["Level"]
         
         # Append the data into a list to convert it into a DF
-        match_summ_name.append(name)
+        match_summ_name.append(summoner_name)
         match_augments.append(augments_new)
         match_placement.append(placements)
         match_units.append(units_new)
@@ -222,10 +237,15 @@ def matches_data_manipulation(data):
     df_chall_matches = pd.DataFrame(chall_matches)
     df_without_underscore = rm_underscore(df_chall_matches)
     
+    print(df_without_underscore.dtypes)
+    print(df_without_underscore.head())
     return df_without_underscore
-tft_api_get_challenger()
-tft_api_transform_challenger()
-df, summoner_name = tft_api_transform_challenger()
-puuids = get_player_puuid(summoner_name)
-matches_ids = get_player_matches(puuids)
-data = iterate_over_matches(matches_ids)
+
+if __name__ == "__main__":
+    tft_api_get_challenger()
+    tft_api_transform_challenger()
+    df, summoner_name = tft_api_transform_challenger()
+    player_data = get_player_puuid(summoner_name)
+    player_data_matches_id = get_player_matches(player_data)
+    player_data_matches_detail = iterate_over_matches(player_data_matches_id)
+    df_without_underscore = matches_data_manipulation(player_data_matches_detail)

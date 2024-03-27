@@ -2,7 +2,6 @@
 # from airflow.decorators import dag, task
 import requests
 import pandas as pd
-import json
 from sqlalchemy import create_engine
 import logging
 import os
