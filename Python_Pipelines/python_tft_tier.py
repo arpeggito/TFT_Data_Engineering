@@ -37,7 +37,7 @@ time_period = 1  # Time period in seconds
 # def taskflow():
 def rm_underscore(df):
     # Apply a lambda function to remove underscores from each element in the DataFrame
-    df_no_underscores = df.applymap(lambda x: str(x).replace("_", ""))
+    df_no_underscores = df.map(lambda x: str(x).replace("_", ""))
 
     return df_no_underscores
 
@@ -63,7 +63,7 @@ def tft_api_get_challenger():
         raise
 
 
-def tft_api_transform_challenger() -> object:
+def tft_api_transform_challenger() -> tuple[pd.DataFrame, list]:
     # Data Manipulation for the Challenger API call
     raw_data = tft_api_get_challenger()
 
@@ -91,7 +91,7 @@ def tft_api_transform_challenger() -> object:
         losses.append(data_summonerloss)
 
     chall_leaderboard = {
-        "Summoner Name": summoner_id,
+        "Summoner Name": summoner_name,
         "League Points": league_points,
         "Number of Wins": wins,
         "Number of Losses": losses,
@@ -101,6 +101,8 @@ def tft_api_transform_challenger() -> object:
     df = pd.DataFrame(chall_leaderboard)
     # Insert a Column with the rank
     df.insert(4, "Rank", "Challenger", True)
+    convert_dict = {'Summoner Name': str, 'League Points': int, 'Number of Wins': int, 'Number of Losses': int}
+    df = df.astype(convert_dict)
 
     return df, summoner_name
 
@@ -138,7 +140,7 @@ def get_player_puuid(summoner_name) -> list[dict]:
 
 
 @sleep_and_retry
-@limits(calls=rate_limit, period=time_period)
+@limits(calls=20, period=1)
 def get_player_matches(player_data) -> list[dict]:
 
     player_data_matches_id = []
@@ -170,38 +172,40 @@ def get_player_matches(player_data) -> list[dict]:
 
 @sleep_and_retry
 @limits(calls=rate_limit, period=time_period)
-def iterate_over_matches(player_data_matches_id) -> list[dict]:
-
+def iterate_over_matches(player_data_matches_id) -> dict:
     player_data_matches_detail = []
 
     try:
         # Iterates over the matches and brings the important data from the match of the player
         for user_data in player_data_matches_id:
 
-            matches = user_data["matches"]
-            puuid = user_data["puuid"]
-
+            name = user_data['name']
+            matches = user_data['matches']
+            puuid = user_data['puuid']
+            
+            
             for match in matches:
                 url = f"{BASE_URL_2}/match/v1/matches/{match}"
                 response = requests.get(url, headers=headers)
                 response.raise_for_status()  # Raise an exception for HTTP errors
                 game = response.json()
 
-                data = game["info"]["participants"][
-                    game["metadata"]["participants"].index(puuid)
-                ]
-
-                user_data["Augments"] = data["augments"]
-                user_data["Placement"] = data["placement"]
-                user_data["Units"] = data["units"]
-                user_data["Level"] = data["level"]
-                user_data["Match"] = match
-
-                player_data_matches_detail.append(user_data)
-
+                data = game["info"]["participants"][game["metadata"]["participants"].index(puuid)]
                 if data == -1:
                     continue
+                
+                player_detail={}
+                
+                player_detail["name"] = name
+                player_detail["Match"] = match
+                player_detail["Augments"] = data["augments"]
+                player_detail["Placement"] = data["placement"]
+                player_detail["Units"] = data["units"]
+                player_detail["Level"] = data["level"]
+                
 
+                player_data_matches_detail.append(player_detail)
+                
         return player_data_matches_detail
 
     except requests.HTTPError as http_err:
@@ -212,7 +216,7 @@ def iterate_over_matches(player_data_matches_id) -> list[dict]:
         raise
 
 
-def matches_data_manipulation(player_data_matches_detail) -> object:
+def matches_data_manipulation(player_data_matches_detail) -> pd.DataFrame:
 
     match_summ_name = []
     match_augments = []
@@ -222,7 +226,6 @@ def matches_data_manipulation(player_data_matches_detail) -> object:
     match_id = []
 
     for data in player_data_matches_detail:
-        print(data)
         # Manipulats the data and cleans it
         summoner_name = data["name"]
         match = data["Match"]
@@ -252,9 +255,10 @@ def matches_data_manipulation(player_data_matches_detail) -> object:
 
     df_chall_matches = pd.DataFrame(chall_matches)
     df_without_underscore = rm_underscore(df_chall_matches)
+    convert_dict = {'Summoner Name': str, 'Augments': str, 'Units': str, 'Level': int, 'Placement': int, 'Match ID': str}
+    matches_dataframe = df_without_underscore.astype(convert_dict)
 
-    print(df_without_underscore.head())
-    return df_without_underscore
+    return matches_dataframe
 
 
 def matches_to_sql(DB, dataframe) -> None:
@@ -266,7 +270,7 @@ def matches_to_sql(DB, dataframe) -> None:
         dataframe.to_sql(DB, engine, if_exists="replace", index=False)
 
 
-def matches_to_snowflake(dataframe) -> None:
+def matches_to_snowflake(dataframe, schema_name, table_name) -> None:
     # Sends DataFrames to Snowflake
     conn = snowflake.connector.connect(
         user=os.getenv("SNOWFLAKE_USER"),
@@ -279,8 +283,6 @@ def matches_to_snowflake(dataframe) -> None:
 
     # ToDO: extract to config
 
-    schema_name = "TFT_DATABASE"
-    table_name = "chall_tft_stats"
     cur = conn.cursor()
     cur.execute("USE SCHEMA TFT_DATABASE")
 
@@ -295,17 +297,20 @@ def matches_to_snowflake(dataframe) -> None:
     )
 
 
+@sleep_and_retry
+@limits(calls=rate_limit, period=time_period)
 def main():
     try:
         tft_api_get_challenger()
         tft_api_transform_challenger()
         df, summoner_name = tft_api_transform_challenger()
+        matches_to_snowflake(df, 'TFT_DATABASE', 'tft_challenger_leaderboard')
         player_data = get_player_puuid(summoner_name)
         player_data_matches_id = get_player_matches(player_data)
         player_data_matches_detail = iterate_over_matches(player_data_matches_id)
-        df_without_underscore = matches_data_manipulation(player_data_matches_detail)
-        matches_to_sql(DB_2_NAME, df_without_underscore)
-        matches_to_snowflake(df_without_underscore)
+        matches_dataframe = matches_data_manipulation(player_data_matches_detail)
+        matches_to_sql(DB_2_NAME, matches_dataframe)
+        matches_to_snowflake(matches_dataframe, 'TFT_DATABASE', 'chall_tft_stats')
 
     except RateLimitException:
         logging.error("Rate limit exceeded. Please wait before making more requests.")
