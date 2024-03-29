@@ -179,32 +179,35 @@ def taskflow():
             # Iterates over the matches and brings the important data from the match of the player
             for user_data in player_data_matches_id:
 
-                matches = user_data["matches"]
-                puuid = user_data["puuid"]
-
+                name = user_data['name']
+                matches = user_data['matches']
+                puuid = user_data['puuid']
+                
+                
                 for match in matches:
                     url = f"{BASE_URL_2}/match/v1/matches/{match}"
                     response = requests.get(url, headers=headers)
                     response.raise_for_status()  # Raise an exception for HTTP errors
                     game = response.json()
 
-                    data = game["info"]["participants"][
-                        game["metadata"]["participants"].index(puuid)
-                    ]
-
-                    user_data["Augments"] = data["augments"]
-                    user_data["Placement"] = data["placement"]
-                    user_data["Units"] = data["units"]
-                    user_data["Level"] = data["level"]
-                    user_data["Match"] = match
-
-                    player_data_matches_detail.append(user_data)
-
+                    data = game["info"]["participants"][game["metadata"]["participants"].index(puuid)]
                     if data == -1:
                         continue
+                    
+                    player_detail={}
+                    
+                    player_detail["name"] = name
+                    player_detail["Match"] = match
+                    player_detail["Augments"] = data["augments"]
+                    player_detail["Placement"] = data["placement"]
+                    player_detail["Units"] = data["units"]
+                    player_detail["Level"] = data["level"]
+                    
 
+                    player_data_matches_detail.append(player_detail)
+                    
             return player_data_matches_detail
-
+    
         except requests.HTTPError as http_err:
             print(f"HTTP error occurred: {http_err}")
             raise
