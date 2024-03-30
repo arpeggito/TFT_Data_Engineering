@@ -32,15 +32,17 @@ BASE_URL_2 = "https://europe.api.riotgames.com/tft"
 rate_limit = 20  # Number of requests per time period
 time_period = 1  # Time period in seconds
 
+
 def rm_underscore(df):
     # Apply a lambda function to remove underscores from each element in the DataFrame
     df_no_underscores = df.applymap(lambda x: str(x).replace("_", ""))
 
     return df_no_underscores
 
+
 @dag(schedule="@daily", start_date=datetime(2024, 1, 22))
 def taskflow():
-    
+
     @sleep_and_retry
     @limits(calls=rate_limit, period=time_period)
     @task
@@ -103,7 +105,6 @@ def taskflow():
 
         return df, summoner_name
 
-
     @sleep_and_retry
     @limits(calls=rate_limit, period=time_period)
     @task
@@ -135,7 +136,6 @@ def taskflow():
 
         return player_data
 
-
     @sleep_and_retry
     @limits(calls=rate_limit, period=time_period)
     @task
@@ -147,9 +147,7 @@ def taskflow():
             try:
                 # Gets the Matches by puuid of each player
                 puuid = user_data["puuid"]
-                url_matches = (
-                    f"{BASE_URL_2}/match/v1/matches/by-puuid/{puuid}/ids?start=0&count=10"
-                )
+                url_matches = f"{BASE_URL_2}/match/v1/matches/by-puuid/{puuid}/ids?start=0&count=10"
                 response = requests.get(url_matches, headers=headers)
                 response.raise_for_status()  # Raise an exception for HTTP errors
                 matches = response.json()
@@ -167,7 +165,6 @@ def taskflow():
 
         return player_data_matches_id
 
-
     @sleep_and_retry
     @limits(calls=rate_limit, period=time_period)
     @task
@@ -179,35 +176,35 @@ def taskflow():
             # Iterates over the matches and brings the important data from the match of the player
             for user_data in player_data_matches_id:
 
-                name = user_data['name']
-                matches = user_data['matches']
-                puuid = user_data['puuid']
-                
-                
+                name = user_data["name"]
+                matches = user_data["matches"]
+                puuid = user_data["puuid"]
+
                 for match in matches:
                     url = f"{BASE_URL_2}/match/v1/matches/{match}"
                     response = requests.get(url, headers=headers)
                     response.raise_for_status()  # Raise an exception for HTTP errors
                     game = response.json()
 
-                    data = game["info"]["participants"][game["metadata"]["participants"].index(puuid)]
+                    data = game["info"]["participants"][
+                        game["metadata"]["participants"].index(puuid)
+                    ]
                     if data == -1:
                         continue
-                    
-                    player_detail={}
-                    
+
+                    player_detail = {}
+
                     player_detail["name"] = name
                     player_detail["Match"] = match
                     player_detail["Augments"] = data["augments"]
                     player_detail["Placement"] = data["placement"]
                     player_detail["Units"] = data["units"]
                     player_detail["Level"] = data["level"]
-                    
 
                     player_data_matches_detail.append(player_detail)
-                    
+
             return player_data_matches_detail
-    
+
         except requests.HTTPError as http_err:
             print(f"HTTP error occurred: {http_err}")
             raise
@@ -297,7 +294,7 @@ def taskflow():
             auto_create_table=True,
             overwrite=True,
         )
-        
+
     tft_api_get_challenger()
     tft_api_transform_challenger()
     df, summoner_name = tft_api_transform_challenger()
@@ -321,4 +318,3 @@ dag = taskflow()
 #     df_without_underscore = matches_data_manipulation(player_data_matches_detail)
 #     matches_to_sql(DB_2_NAME, df_without_underscore)
 #     matches_to_snowflake(df_without_underscore)
-
