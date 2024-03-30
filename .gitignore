@@ -4,5 +4,5 @@ logs/
 plugins/
 metabase/
 pgdata/
-Python_Pipelines/test.py
+Pipelines/test.py
 dockerfile
