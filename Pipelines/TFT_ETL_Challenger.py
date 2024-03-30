@@ -257,6 +257,7 @@ def matches_data_manipulation(player_data_matches_detail) -> pd.DataFrame:
     convert_dict = {'Summoner Name': str, 'Augments': str, 'Units': str, 'Level': int, 'Placement': int, 'Match ID': str}
     matches_dataframe = df_without_underscore.astype(convert_dict)
 
+    print(matches_dataframe)
     return matches_dataframe
 
 
