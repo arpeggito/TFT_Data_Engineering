@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from ratelimit import RateLimitException, limits, sleep_and_retry
 import snowflake.connector
 from snowflake.connector.pandas_tools import write_pandas
+import time
 
 load_dotenv()
 
@@ -29,8 +30,12 @@ BASE_URL_2 = "https://europe.api.riotgames.com/tft"
 
 
 # Define the rate limits
-rate_limit = 20  # Number of requests per time period
-time_period = 1  # Time period in seconds
+# Define the decorator with your rate limit settings
+# For 20 requests every 1 second
+rate_limited_per_second = limits(calls=20, period=1)
+
+# For 100 requests every 2 minutes
+rate_limited_per_two_minutes = limits(calls=100, period=120)
 
 
 # @dag(schedule="@daily", start_date=datetime(2024, 1, 22))
@@ -43,8 +48,8 @@ def rm_underscore(df):
 
 
 # @task
-@sleep_and_retry
-@limits(calls=rate_limit, period=time_period)
+@rate_limited_per_second
+@rate_limited_per_two_minutes
 def tft_api_get_challenger():
     # API call to the challenger rank endpoint of the EU server
     try:
@@ -57,10 +62,10 @@ def tft_api_get_challenger():
         return response_json
     except requests.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
-        raise
+        
     except Exception as err:
         print(f"Other error occurred: {err}")
-        raise
+        
 
 
 def tft_api_transform_challenger() -> tuple[pd.DataFrame, list]:
@@ -103,18 +108,22 @@ def tft_api_transform_challenger() -> tuple[pd.DataFrame, list]:
     df.insert(4, "Rank", "Challenger", True)
     convert_dict = {'Summoner Name': str, 'League Points': int, 'Number of Wins': int, 'Number of Losses': int}
     df = df.astype(convert_dict)
-
+    
     return df, summoner_name
 
 
 # @task
-@sleep_and_retry
-@limits(calls=rate_limit, period=time_period)
+@rate_limited_per_second
+@rate_limited_per_two_minutes
 def get_player_puuid(summoner_name) -> list[dict]:
 
     player_data = []
 
     for name in summoner_name:
+        if name == '' or name is None:
+            print("Name is missing in user data. Skipping this user.")
+            continue
+            
         try:
             # Gets the puuid of each challenger player
             url_puuid = f"{BASE_URL}/summoner/v1/summoners/by-name/{name}"
@@ -131,26 +140,30 @@ def get_player_puuid(summoner_name) -> list[dict]:
 
         except requests.HTTPError as http_err:
             print(f"HTTP error occurred: {http_err}")
-            raise
+        
         except Exception as err:
             print(f"Other error occurred: {err}")
-            raise
-
+            
     return player_data
 
 
-@sleep_and_retry
-@limits(calls=20, period=1)
+@rate_limited_per_second
+@rate_limited_per_two_minutes
 def get_player_matches(player_data) -> list[dict]:
 
     player_data_matches_id = []
 
     for user_data in player_data:
+        puuid = user_data.get('puuid')
+        if puuid == '' or puuid is None:
+            print("PUUID is missing for this user. Skipping this user.")
+            continue
+        
         try:
             # Gets the Matches by puuid of each player
-            puuid = user_data["puuid"]
+        
             url_matches = (
-                f"{BASE_URL_2}/match/v1/matches/by-puuid/{puuid}/ids?start=0&count=10"
+                f"{BASE_URL_2}/match/v1/matches/by-puuid/{puuid}/ids?start=0&count=2"
             )
             response = requests.get(url_matches, headers=headers)
             response.raise_for_status()  # Raise an exception for HTTP errors
@@ -162,33 +175,47 @@ def get_player_matches(player_data) -> list[dict]:
 
         except requests.HTTPError as http_err:
             print(f"HTTP error occurred: {http_err}")
-            raise
+            
         except Exception as err:
             print(f"Other error occurred: {err}")
-            raise
 
     return player_data_matches_id
 
-@sleep_and_retry
-@limits(calls=rate_limit, period=time_period)
+@rate_limited_per_second
+@rate_limited_per_two_minutes
 def iterate_over_matches(player_data_matches_id) -> list[dict]:
+    
     player_data_matches_detail = []
+    last_request_time = time.time()
 
     try:
         # Iterates over the matches and brings the important data from the match of the player
         for user_data in player_data_matches_id:
+            puuid = user_data.get('puuid')
+            name = user_data.get('name')
+            matches = user_data.get('matches')
+                        
+            if matches is None or not isinstance(matches, (list, tuple)):
+                print("Matches data is missing or not iterable for this user. Skipping this user.")
+                continue
 
-            name = user_data['name']
-            matches = user_data['matches']
-            puuid = user_data['puuid']
-            
             
             for match in matches:
+                if match is None:
+                    print("Matches data is missing or not iterable for this user. Skipping this user.")
+                    continue
+                
                 url = f"{BASE_URL_2}/match/v1/matches/{match}"
+                
+                time_since_last_request = time.time() - last_request_time
+                if time_since_last_request < 1: # Adjust this value based on your rate limit
+                    time.sleep(1 - time_since_last_request) # Sleep until the next request is allowed
+                last_request_time = time.time()
+                
                 response = requests.get(url, headers=headers)
                 response.raise_for_status()  # Raise an exception for HTTP errors
                 game = response.json()
-
+                
                 data = game["info"]["participants"][game["metadata"]["participants"].index(puuid)]
                 if data == -1:
                     continue
@@ -201,18 +228,29 @@ def iterate_over_matches(player_data_matches_id) -> list[dict]:
                 player_detail["Placement"] = data["placement"]
                 player_detail["Units"] = data["units"]
                 player_detail["Level"] = data["level"]
-                
+
+                # player_detail["name"] = name
+                # player_detail["Match"] = match
+                # player_detail["Augments"] = data.get("augments", [])
+                # player_detail["Placement"] = data.get("placement", -1)
+                # player_detail["Units"] = data.get("units", -1)
+                # player_detail["Level"] = data.get("level", -1)
 
                 player_data_matches_detail.append(player_detail)
-                
-        return player_data_matches_detail
+        
+        # print(player_data_matches_detail)
+        # return player_data_matches_detail
 
     except requests.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
-        raise
+        # return player_data_matches_detail
+        
     except Exception as err:
         print(f"Other error occurred: {err}")
-        raise
+        # return player_data_matches_detail
+    
+    return player_data_matches_detail
+
 
 
 def matches_data_manipulation(player_data_matches_detail) -> pd.DataFrame:
@@ -225,6 +263,7 @@ def matches_data_manipulation(player_data_matches_detail) -> pd.DataFrame:
     match_id = []
 
     for data in player_data_matches_detail:
+        
         # Manipulats the data and cleans it
         summoner_name = data["name"]
         match = data["Match"]
@@ -257,11 +296,11 @@ def matches_data_manipulation(player_data_matches_detail) -> pd.DataFrame:
     convert_dict = {'Summoner Name': str, 'Augments': str, 'Units': str, 'Level': int, 'Placement': int, 'Match ID': str}
     matches_dataframe = df_without_underscore.astype(convert_dict)
 
-    print(matches_dataframe)
     return matches_dataframe
 
 
 def matches_to_sql(DB, dataframe) -> None:
+    
     # Sends the dataframe to the postgres database.
     engine = create_engine(
         f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB}"
@@ -269,8 +308,8 @@ def matches_to_sql(DB, dataframe) -> None:
     with engine.connect() as connection:
         dataframe.to_sql(DB, engine, if_exists="replace", index=False)
 
-
 def matches_to_snowflake(dataframe, schema_name, table_name) -> None:
+    
     # Sends DataFrames to Snowflake
     conn = snowflake.connector.connect(
         user=os.getenv("SNOWFLAKE_USER"),
@@ -297,14 +336,15 @@ def matches_to_snowflake(dataframe, schema_name, table_name) -> None:
     )
 
 
-@sleep_and_retry
-@limits(calls=rate_limit, period=time_period)
+@rate_limited_per_second
+@rate_limited_per_two_minutes
 def main():
     try:
         tft_api_get_challenger()
         tft_api_transform_challenger()
         df, summoner_name = tft_api_transform_challenger()
         matches_to_snowflake(df, 'TFT_DATABASE', 'tft_challenger_leaderboard')
+        
         player_data = get_player_puuid(summoner_name)
         player_data_matches_id = get_player_matches(player_data)
         player_data_matches_detail = iterate_over_matches(player_data_matches_id)
@@ -314,8 +354,8 @@ def main():
 
     except RateLimitException:
         logging.error("Rate limit exceeded. Please wait before making more requests.")
-    except Exception as e:
-        logging.error(f"An error occurred: {e}")
+    # except Exception as e:
+    #     logging.error(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
