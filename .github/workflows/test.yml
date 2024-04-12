@@ -1,0 +1,17 @@
+name: Check YML for 'owner:'
+on:
+  pull_request:
+    paths:
+      - '**.yml'
+jobs:
+  check-yml:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.10'  # Specifies the Python version.
+      - name: Check YML files
+        run: python .github/scripts/check_yml_files.py
