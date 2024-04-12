@@ -1,5 +1,6 @@
 version: 2
 
+
 models:
   - name: operations_personnel_costs
     description: 'Report on full time employee payroll costs per market and department'
